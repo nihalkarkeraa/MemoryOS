@@ -48,6 +48,10 @@ from services.comparison_service import (
     comparison_service
 )
 
+from services.knowledge_graph_service import (
+    knowledge_graph_service
+)
+
 
 app = FastAPI(
     title="MemoryOS API"
@@ -501,7 +505,17 @@ def delete_document(
     )
 
     # --------------------------------------------------
-    # 3. Delete PDF
+    # 3. Delete document provenance from knowledge graph
+    # --------------------------------------------------
+
+    graph_cleanup = (
+        knowledge_graph_service.delete_document_provenance(
+            document_id
+        )
+    )
+
+    # --------------------------------------------------
+    # 4. Delete PDF
     # --------------------------------------------------
 
     stored_filename = document.get(
@@ -523,7 +537,7 @@ def delete_document(
         pdf_deleted = True
 
     # --------------------------------------------------
-    # 4. Delete extracted text
+    # 5. Delete extracted text
     # --------------------------------------------------
 
     extracted_path = (
@@ -540,7 +554,7 @@ def delete_document(
         extracted_deleted = True
 
     # --------------------------------------------------
-    # 5. Delete document metadata
+    # 6. Delete document metadata
     # --------------------------------------------------
 
     metadata_path = (
@@ -557,7 +571,7 @@ def delete_document(
         metadata_deleted = True
 
     # --------------------------------------------------
-    # 6. Delete registry entry
+    # 7. Delete registry entry
     # --------------------------------------------------
 
     deleted_document = (
@@ -567,7 +581,7 @@ def delete_document(
     )
 
     # --------------------------------------------------
-    # 7. Return deletion information
+    # 8. Return deletion information
     # --------------------------------------------------
 
     return {
@@ -577,6 +591,7 @@ def delete_document(
             "filename"
         ],
         "deleted_chunks": deleted_chunks,
+        "knowledge_graph_cleanup": graph_cleanup,
         "pdf_deleted": pdf_deleted,
         "extracted_text_deleted": (
             extracted_deleted
@@ -588,6 +603,101 @@ def delete_document(
             deleted_document is not None
         )
     }
+
+
+# ==========================================================
+# KNOWLEDGE GRAPH EXTRACTION STATUS
+# ==========================================================
+
+
+@app.get("/documents/{document_id}/knowledge-graph/status")
+def get_knowledge_graph_status(
+    document_id: str
+):
+    # Verify the document still exists.
+    document = (
+        document_registry_service.find_by_id(
+            document_id
+        )
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found."
+        )
+
+    graph_status = (
+        ingestion_service.get_graph_status(
+            document_id
+        )
+    )
+
+    if graph_status is None:
+        return {
+            "document_id": document_id,
+            "status": "unknown",
+            "message": (
+                "No in-memory graph extraction status is available. "
+                "The backend may have restarted, or graph extraction "
+                "may not have been scheduled in this process."
+            )
+        }
+
+    return {
+        "document_id": document_id,
+        "filename": document.get(
+            "filename",
+            "Unknown document"
+        ),
+        "knowledge_graph": graph_status
+    }
+
+
+# ==========================================================
+# KNOWLEDGE GRAPH EXPLORER
+# ==========================================================
+
+
+@app.get("/knowledge-graph")
+def get_knowledge_graph():
+    """
+    Return the complete stored knowledge graph.
+    Read-only: this endpoint does not run model inference.
+    """
+    try:
+        return knowledge_graph_service.get_graph()
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve knowledge graph: {str(error)}"
+        )
+
+
+@app.get("/knowledge-graph/concepts/{concept_id}")
+def get_knowledge_graph_concept(
+    concept_id: str
+):
+    """
+    Return one concept and its outgoing relationships.
+    """
+    try:
+        concept = knowledge_graph_service.get_concept(
+            concept_id
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve concept: {str(error)}"
+        )
+
+    if concept is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Concept not found."
+        )
+
+    return concept
 
 
 # ==========================================================
