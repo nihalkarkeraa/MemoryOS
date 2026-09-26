@@ -88,20 +88,42 @@ function formatRelative(dateValue) {
   }
 }
 
+// Normalize backend document status for the frontend.
 function normalizeStatus(s) {
   if (!s) return "Ready";
 
-  const v = String(s).toLowerCase();
+  const v = String(s).trim().toLowerCase();
 
+  // Completed states.
+  // "processed" must be checked explicitly because
+  // "processed" contains the word "process".
   if (
-    v.includes("process") ||
-    v.includes("pending") ||
-    v.includes("index")
+    v === "processed" ||
+    v === "ready" ||
+    v === "completed" ||
+    v === "complete" ||
+    v === "success" ||
+    v === "successful" ||
+    v === "done" ||
+    v === "finished"
+  ) {
+    return "Ready";
+  }
+
+  // Active processing states.
+  if (
+    v === "processing" ||
+    v === "pending" ||
+    v === "indexing"
   ) {
     return "Processing";
   }
 
-  if (v.includes("fail") || v.includes("error")) {
+  // Failed states.
+  if (
+    v.includes("fail") ||
+    v.includes("error")
+  ) {
     return "Error";
   }
 
@@ -158,6 +180,17 @@ function normalizeDocument(raw, index = 0) {
 }
 
 function normalizeSource(raw, index = 0) {
+  const documentId = firstOf(raw, [
+    "document_id",
+    "documentId",
+    "doc_id",
+  ]);
+
+  const chunkId = firstOf(raw, [
+    "chunk_id",
+    "chunkId",
+  ]);
+
   const name =
     firstOf(raw, [
       "filename",
@@ -166,7 +199,7 @@ function normalizeSource(raw, index = 0) {
       "document_name",
       "source",
       "title",
-    ]) || `Source ${index + 1}`;
+    ]) || null;
 
   const page = firstOf(raw, [
     "page",
@@ -208,6 +241,16 @@ function normalizeSource(raw, index = 0) {
         "source_id",
       ]) || String(index),
 
+    documentId:
+      documentId != null
+        ? String(documentId)
+        : null,
+
+    chunkId:
+      chunkId != null
+        ? String(chunkId)
+        : null,
+
     name,
     page: page ?? null,
     excerpt: content,
@@ -241,10 +284,11 @@ function normalizeSource(raw, index = 0) {
  *
  *     (score - minimum)
  *     ------------------ × 100
+ *
  *     (maximum - minimum)
  *
  * Highest result = 100
- * Lowest result  = 0
+ * Lowest result = 0
  */
 function normalizeSearchMatchPercent(results) {
   if (!Array.isArray(results) || results.length === 0) {
@@ -474,11 +518,61 @@ export async function chat(
       "citations",
     ]) || [];
 
-  const sources = (
+  let sources = (
     Array.isArray(rawSources)
       ? rawSources
       : []
   ).map((s, i) => normalizeSource(s, i));
+
+  /*
+   * The /chat endpoint currently returns document_id,
+   * page_number and chunk_id, but not the filename.
+   *
+   * Resolve document_id -> filename using the existing
+   * /documents endpoint instead of changing the backend.
+   *
+   * If this lookup fails, the chat answer still succeeds
+   * and the source will fall back to its document ID.
+   */
+  if (sources.length > 0) {
+    try {
+      const documents = await getDocuments();
+
+      const documentMap = new Map(
+        documents.map((document) => [
+          String(document.id),
+          document.name,
+        ])
+      );
+
+      sources = sources.map((source) => ({
+        ...source,
+        name:
+          source.name ||
+          (source.documentId
+            ? documentMap.get(
+                String(source.documentId)
+              )
+            : null) ||
+          (
+            source.documentId
+              ? `Document ${source.documentId.slice(0, 8)}…`
+              : `Source ${source.id}`
+          ),
+      }));
+    } catch {
+      sources = sources.map((source) => ({
+        ...source,
+        name:
+          source.name ||
+          (
+            source.documentId
+              ? `Document ${source.documentId.slice(0, 8)}…`
+              : `Source ${source.id}`
+          ),
+      }));
+    }
+  }
 
   return {
     answer,

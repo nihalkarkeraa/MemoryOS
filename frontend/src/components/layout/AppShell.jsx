@@ -9,13 +9,17 @@ const titleMap = {
   "/search": "Search",
   "/compare": "Compare",
   "/summaries": "Summaries",
+  "/knowledge-graph": "Knowledge Graph",
 };
 
 export default function AppShell() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
   const location = useLocation();
-  const title = titleMap[location.pathname] || "Home";
+
+  const title =
+    titleMap[location.pathname] || "Home";
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
@@ -25,8 +29,13 @@ export default function AppShell() {
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />
+
       <div className="flex min-w-0 flex-1 flex-col">
-        <Header title={title} onOpenSidebar={() => setMobileOpen(true)} />
+        <Header
+          title={title}
+          onOpenSidebar={() => setMobileOpen(true)}
+        />
+
         <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>

@@ -56,7 +56,7 @@ class LLMService:
             response = requests.post(
                 self.ollama_url,
                 json=payload,
-                timeout=300
+                timeout=660
             )
 
             # --------------------------------------------------
@@ -81,7 +81,7 @@ class LLMService:
         except requests.exceptions.Timeout as error:
 
             raise RuntimeError(
-                "Ollama request timed out after 300 seconds."
+                "Ollama request timed out after 660 seconds."
             ) from error
 
         except requests.exceptions.ConnectionError as error:
