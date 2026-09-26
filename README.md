@@ -1,6 +1,4 @@
-Yes — you want **exactly this clean Markdown format**, just updated with the current MemoryOS functionality. Copy this entire block directly into `README.md`:
 
-````markdown
 # **MEMORYOS — AI KNOWLEDGE & RESEARCH ASSISTANT**
 
 MemoryOS is an AI-powered knowledge and research assistant designed to help users organize, retrieve, compare, summarize, and understand information from their documents.
