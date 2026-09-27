@@ -31,43 +31,55 @@ MemoryOS follows a modular architecture consisting of a React frontend, FastAPI 
 
 MemoryOS follows a modular architecture that separates document processing, embedding generation, vector storage, retrieval, reranking, response generation, and knowledge graph processing.
 
-```text
-                         User
-                          |
-                          v
-                    React Frontend
-                          |
-                          v
-                   FastAPI Backend
-                          |
-          +---------------+----------------+
-          |               |                |
-          v               v                v
-    Document          User Query      Knowledge Graph
-    Processing             |                |
-          |                v                |
-          v         Hybrid Retrieval       |
-    PDF Extraction         |                |
-          |                v                |
-          v        Cross-Encoder           |
-     Text Chunking       Reranking          |
-          |                |                |
-          v                v                |
-     Embedding       Relevant Chunks       |
-     Generation             |               |
-          |                 v               |
-          v          Retrieved Context      |
-       ChromaDB              |               |
-                             v               |
-                       Local LLM             |
-                        (Ollama)             |
-                             |               |
-                             v               |
-                     Generated Response      |
-                             |               |
-                             v               |
-                       Sources / Citations  |
-````
+                              User
+                               |
+                               v
+                        React Frontend
+                               |
+                               v
+                        FastAPI Backend
+                               |
+             +-----------------+------------------+
+             |                                    |
+             v                                    v
+      Document Processing                    User Query
+             |                                    |
+             v                                    v
+       PDF Extraction                    Hybrid Retrieval
+             |                                    |
+             v                                    v
+        Text Chunking                    Cross-Encoder
+             |                              Reranking
+             v                                    |
+      Embedding Generation                         v
+             |                              Relevant Chunks
+             v                                    |
+          ChromaDB                                 v
+             |                              Retrieved Context
+             |                                    |
+             |                                    v
+             |                              Local LLM
+             |                           (Ollama + Phi-3)
+             |                                    |
+             |                                    v
+             |                              Generated Answer
+             |                                    |
+             |                                    v
+             |                              Sources / Citations
+             |
+             |
+             +----------------------+
+                                    |
+                                    v
+                          Knowledge Graph
+                                    |
+                         Concepts + Relationships
+                                    |
+                                    v
+                         Provenance / Sources
+                                    |
+                                    v
+                         Knowledge Graph UI
 
 ## **Technologies Used**
 
@@ -403,27 +415,23 @@ These results represent development tests and functional validation and do not c
 * [x] Complete frontend-backend integration
 * [x] End-to-end functional validation
 
-### Deployment & Finalization
 
-* [ ] Dockerize backend
-* [ ] Dockerize frontend
-* [ ] Configure Docker Compose
-* [ ] Configure persistent data volumes
-* [ ] Configure Ollama connectivity
-* [ ] Test complete Docker workflow
-* [ ] Final GitHub repository cleanup
-* [ ] Final README documentation
-* [ ] Add project screenshots and architecture visuals
-
-### Advanced Features
-
-* [ ] Advanced multi-document research workflows
-* [ ] Agentic AI capabilities
-* [ ] Advanced knowledge-management workflows
-* [ ] Additional knowledge graph reasoning
-* [ ] Model optimization and fine-tuning
-* [ ] Expanded document format support
-* [ ] Advanced research automation
+### Limitations
+* CPU-based local LLM inference can be slow
+* PDF-focused document ingestion
+*  Limited support for scanned/image-based PDFs
+*  Local LLM capabilities are limited compared with larger models
+*  Retrieval quality depends on the retrieved chunks
+*  Context-window limitations for very large documents
+*  Knowledge graph extraction depends on LLM accuracy
+*  Knowledge graph may miss or incorrectly infer relationships
+* Primarily designed for single-user/local usage
+* Local storage limits scalability
+* Limited automatic recovery of interrupted background tasks
+* No production-grade multi-user authentication and authorization
+* No native support for multiple document formats such as DOCX, PPTX and XLSX
+* Multi-hop reasoning across widely separated document sections is limited
+* Performance depends heavily on available CPU and RAM
 
 ## **Hardware & Development Environment**
 
@@ -463,7 +471,6 @@ The currently working system includes:
 * Document management
 * Frontend-backend integration
 
-The next major development stage is **Dockerization and deployment preparation**.
 
 ## **Future Scope**
 
