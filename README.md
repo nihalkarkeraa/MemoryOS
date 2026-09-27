@@ -510,6 +510,3 @@ GitHub: [https://github.com/nihalkarkeraa](https://github.com/nihalkarkeraa)
 
 ```
 
-
-**MemoryOS progress: 96%** 🚀
-```
